@@ -1,0 +1,7 @@
+.env
+data/
+__pycache__/
+*.pyc
+技术方案.md
+数据库与事件Schema设计.md
+逐模块设计.md
