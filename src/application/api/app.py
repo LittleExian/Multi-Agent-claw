@@ -30,6 +30,7 @@ def create_app(*, db_path: str | Path | None = None, container=None) -> FastAPI:
             yield
         finally:
             service_container.event_bus.close()
+            service_container.checkpointer.close()
             service_container.db.close()
 
     app = FastAPI(

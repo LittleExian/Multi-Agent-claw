@@ -13,11 +13,13 @@ class RunDispatcher:
         *,
         orchestrator,
         executor: NodeExecutor,
+        checkpointer=None,
     ):
         self.kernel = LangGraphRunKernel(
             uow_factory,
             orchestrator=orchestrator,
             executor=executor,
+            checkpointer=checkpointer,
         )
 
     def dispatch_run(self, task_run_id: str, *, max_iterations: int = 20) -> DispatchOutcome:

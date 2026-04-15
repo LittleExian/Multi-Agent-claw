@@ -17,7 +17,7 @@ Multi-Agent Claw 是一个基于 FastAPI + SQLite + OpenAI-compatible LLM 的多
 已完成：
 
 - 任务接入、任务分析、任务运行编排
-- LangGraph `thread_id + interrupt/resume` 主链路
+- LangGraph `thread_id + interrupt/resume + SQLite checkpoint` 主链路
 - 审批暂停与审批恢复
 - REST API 与 WebSocket 事件流
 - 真实 LLM 调用、工具调用、本地 Sandbox
@@ -25,7 +25,6 @@ Multi-Agent Claw 是一个基于 FastAPI + SQLite + OpenAI-compatible LLM 的多
 
 仍有关键差距：
 
-- LangGraph checkpoint 目前仍是进程内 `InMemorySaver`，还不支持服务重启恢复
 - 还没有 subgraph / fork-join 级并行编排
 - 还没有完整的 Context Builder / Session Engine
 - 还没有 Result Aggregator / Outbound Message 主链路
@@ -75,6 +74,7 @@ pip install -r requirements.txt
 
 ```env
 SWARM_DB_PATH=/home/exian/project/Multi-Agent-claw/data/swarm.sqlite3
+SWARM_CHECKPOINT_DB_PATH=/home/exian/project/Multi-Agent-claw/data/swarm.checkpoints.sqlite3
 SWARM_WORKSPACE_ROOT=/home/exian/project/Multi-Agent-claw
 
 SWARM_LLM_BASE_URL=http://127.0.0.1:1234/v1
@@ -98,6 +98,7 @@ SWARM_SHELL_NETWORK_ENABLED=false
 - `SWARM_LLM_BASE_URL` 要带 `/v1`
 - `SWARM_LLM_API_KEY` 对 LM Studio 通常填任意非空值即可
 - 数据库会在首次启动时自动初始化
+- `SWARM_CHECKPOINT_DB_PATH` 不填时会默认派生为主库同目录下的 `*.checkpoints.sqlite3`
 
 ## 启动服务
 
@@ -169,16 +170,16 @@ curl -X POST http://127.0.0.1:8000/api/v1/approvals/<approval_id>/resolve \
 
 - 数据库存储使用 SQLite
 - 首次启动会自动执行 `sql/001_init.sql`
+- LangGraph checkpoint 默认持久化到独立的 SQLite 文件
 - 如果没有配置模型，runtime 会退回 deterministic fallback executor
 - 如果任务涉及写文件或执行命令，系统可能先进入审批状态
-- 当前审批恢复优先走 LangGraph `resume`；如果进程内 checkpoint 不存在，会回退到数据库状态驱动的继续执行
+- 审批恢复优先走 LangGraph `resume`，服务重启后也可以基于 SQLite checkpoint 继续恢复
 - 当前 Sandbox 是本地 subprocess 方案，不是容器级隔离
 
 ## 已知边界
 
 - 当前没有前端 UI，主要通过 REST/WebSocket 使用
 - 当前没有正式的 migration 框架
-- 当前 LangGraph checkpointer 仍是内存实现，服务重启后不能直接从 graph checkpoint 恢复
 - 当前 `shell.exec` 仍然属于单机本地执行能力，适合开发环境
 - 较大的本地模型在 agent 场景下可能响应较慢
 
@@ -186,7 +187,7 @@ curl -X POST http://127.0.0.1:8000/api/v1/approvals/<approval_id>/resolve \
 
 建议优先顺序：
 
-1. Durable LangGraph Checkpoint / Subgraph
+1. LangGraph Subgraph / Fork-Join
 2. Context Builder
 3. LLM Analyzer + Planner
 4. Result Aggregator + Outbound Message

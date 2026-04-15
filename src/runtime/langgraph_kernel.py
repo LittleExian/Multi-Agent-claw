@@ -52,10 +52,12 @@ class LangGraphRunKernel:
         *,
         orchestrator,
         executor: NodeExecutor,
+        checkpointer: Any | None = None,
     ):
         self.uow_factory = uow_factory
         self.orchestrator = orchestrator
         self.executor = executor
+        self.checkpointer = checkpointer or InMemorySaver()
         self._graph = self._compile_graph()
 
     def invoke_run(self, task_run_id: str, *, max_iterations: int = 20) -> DispatchOutcome:
@@ -95,7 +97,7 @@ class LangGraphRunKernel:
                 "end": END,
             },
         )
-        return builder.compile(checkpointer=InMemorySaver())
+        return builder.compile(checkpointer=self.checkpointer)
 
     def _route_after_tick(self, state: RunGraphState) -> str:
         if state.get("next_action") == "tick":

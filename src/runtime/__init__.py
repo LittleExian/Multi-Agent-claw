@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 __all__ = [
     "DefaultNodeExecutor",
     "DispatchOutcome",
+    "LangGraphCheckpointerHandle",
     "LangGraphRunKernel",
     "LLMToolNodeExecutor",
     "NodeExecutionContext",
@@ -13,9 +14,11 @@ __all__ = [
     "NodeExecutor",
     "RunDispatcher",
     "WorkerLoop",
+    "build_sqlite_checkpointer",
 ]
 
 if TYPE_CHECKING:
+    from .checkpoints import LangGraphCheckpointerHandle
     from .contracts import DispatchOutcome, NodeExecutionContext, NodeExecutionResult, NodeExecutor
     from .dispatcher import RunDispatcher
     from .executor import DefaultNodeExecutor, NodeExecutionError
@@ -25,6 +28,13 @@ if TYPE_CHECKING:
 
 
 def __getattr__(name: str) -> Any:
+    if name in {"LangGraphCheckpointerHandle", "build_sqlite_checkpointer"}:
+        from .checkpoints import LangGraphCheckpointerHandle, build_sqlite_checkpointer
+
+        return {
+            "LangGraphCheckpointerHandle": LangGraphCheckpointerHandle,
+            "build_sqlite_checkpointer": build_sqlite_checkpointer,
+        }[name]
     if name in {"DispatchOutcome", "NodeExecutionContext", "NodeExecutionResult", "NodeExecutor"}:
         from .contracts import DispatchOutcome, NodeExecutionContext, NodeExecutionResult, NodeExecutor
 

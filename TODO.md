@@ -6,7 +6,7 @@
 
 - 项目已经完成基础原型闭环：任务接入、任务分析、运行编排、审批恢复、事件流、真实 LLM、工具调用、本地 Sandbox。
 - 项目当前更接近“Phase 1 已完成，Phase 2 起步”的状态。
-- 项目离最初 SwarmOS 目标还有几块关键缺口：durable LangGraph checkpoint 与并行编排、Context/Memory/Skill、产品化 Gateway/UI、Docker/MCP/Undo 级工具安全体系。
+- 项目离最初 SwarmOS 目标还有几块关键缺口：LangGraph 并行编排、Context/Memory/Skill、产品化 Gateway/UI、Docker/MCP/Undo 级工具安全体系。
 
 ## 已完成基础能力
 
@@ -16,7 +16,7 @@
 - FastAPI REST API 与 WebSocket 事件流
 - 进程内实时事件总线
 - Runtime worker loop 与最小调度器
-- 最小 LangGraph 运行内核：`task_run_id == thread_id`、`interrupt/resume`、进程内 checkpointer
+- 最小 LangGraph 运行内核：`task_run_id == thread_id`、`interrupt/resume`、SQLite checkpointer
 - OpenAI-compatible LLM client
 - Tool Registry
 - 本地 subprocess Sandbox Executor
@@ -24,23 +24,22 @@
 
 ## P0: 必须优先补齐
 
-### 1. 把 LangGraph 内核补到 durable checkpoint / subgraph 级别
+### 1. 把 LangGraph 内核补到 subgraph / 并行编排级别
 
 目标：
 
-- 让任务运行真正具备 checkpoint、interrupt、resume、subgraph、故障恢复能力。
+- 让任务运行在已具备 durable checkpoint 的基础上，进一步具备更清晰的 graph/subgraph 并行编排能力。
 
 待做事项：
 
-- 用 SQLite/Postgres saver 替换当前 `InMemorySaver`
 - 把当前 LangGraph runtime 从单节点循环图升级为更明确的 graph/subgraph 结构
 - 为并行节点补 fork-join / subgraph 编排
 - 把 checkpoint 元数据与 `task_runs.last_checkpoint_at`、业务事件对齐
-- 支持服务重启后恢复未完成 run
+- 为恢复场景补更系统的 replay / retry 规则
 
 完成标准：
 
-- 任务在进程重启后可以从 checkpoint 恢复
+- 并行节点可以通过 graph/subgraph 正确编排
 - 审批暂停后可通过 resume 正确续跑
 - 已完成节点不会在恢复时重复执行
 
