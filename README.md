@@ -4,11 +4,36 @@ Multi-Agent Claw 是一个基于 FastAPI + SQLite + OpenAI-compatible LLM 的多
 当前已经具备这些核心能力：
 
 - 任务接入与分析
-- 任务运行编排与审批恢复
+- 基于 LangGraph 内核的任务运行编排与审批恢复
 - 实时事件流与 WebSocket 推送
 - 真实 LLM 调用、工具调用与本地 Sandbox 执行
 
 当前形态是 API 服务，不是前端页面应用。
+
+## 当前进度
+
+当前项目已经跑通基础原型闭环，但还没有达到最初设计中的完整 SwarmOS 目标。
+
+已完成：
+
+- 任务接入、任务分析、任务运行编排
+- LangGraph `thread_id + interrupt/resume` 主链路
+- 审批暂停与审批恢复
+- REST API 与 WebSocket 事件流
+- 真实 LLM 调用、工具调用、本地 Sandbox
+- SQLite 持久化、事件记录、基础观测落库
+
+仍有关键差距：
+
+- LangGraph checkpoint 目前仍是进程内 `InMemorySaver`，还不支持服务重启恢复
+- 还没有 subgraph / fork-join 级并行编排
+- 还没有完整的 Context Builder / Session Engine
+- 还没有 Result Aggregator / Outbound Message 主链路
+- 还没有 Docker / MCP / Undo 级工具安全体系
+- 还没有 Memory / Skill 主链路
+- 还没有前端 UI 和多渠道 Adapter
+
+完整任务清单见 [TODO.md](./TODO.md)。
 
 ## 项目结构
 
@@ -146,11 +171,28 @@ curl -X POST http://127.0.0.1:8000/api/v1/approvals/<approval_id>/resolve \
 - 首次启动会自动执行 `sql/001_init.sql`
 - 如果没有配置模型，runtime 会退回 deterministic fallback executor
 - 如果任务涉及写文件或执行命令，系统可能先进入审批状态
+- 当前审批恢复优先走 LangGraph `resume`；如果进程内 checkpoint 不存在，会回退到数据库状态驱动的继续执行
 - 当前 Sandbox 是本地 subprocess 方案，不是容器级隔离
 
 ## 已知边界
 
 - 当前没有前端 UI，主要通过 REST/WebSocket 使用
 - 当前没有正式的 migration 框架
+- 当前 LangGraph checkpointer 仍是内存实现，服务重启后不能直接从 graph checkpoint 恢复
 - 当前 `shell.exec` 仍然属于单机本地执行能力，适合开发环境
 - 较大的本地模型在 agent 场景下可能响应较慢
+
+## 开发路线
+
+建议优先顺序：
+
+1. Durable LangGraph Checkpoint / Subgraph
+2. Context Builder
+3. LLM Analyzer + Planner
+4. Result Aggregator + Outbound Message
+5. Docker Sandbox + MCP
+6. Memory / Skill
+7. UI Projection + Web UI
+8. Observability / Audit
+
+详细拆解见 [TODO.md](./TODO.md)。

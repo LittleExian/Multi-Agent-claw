@@ -64,7 +64,14 @@ def resolve_approval(
         )
     )
     if approval.status.value in {"approved", "edited"}:
-        container.worker_loop.drain_run(approval.task_run_id)
+        container.worker_loop.resume_run(
+            approval.task_run_id,
+            resume_payload={
+                "approval_id": approval.approval_id,
+                "decision": approval.status.value,
+                "decided_by": payload.decided_by,
+            },
+        )
 
     with container.uow_factory() as uow:
         result = build_task_lifecycle_result(
